@@ -16,6 +16,7 @@ import static org.nd4j.imports.TFGraphTestAllHelper.fetchTestParams;
 /**
  * Created by susaneraly on 12/14/17.
  * Run all the tests found in a subdir - for debug
+ * eg. run all tests under tf_graphs/examples/norm_tests
  */
 @RunWith(Parameterized.class)
 @Slf4j
@@ -23,18 +24,18 @@ public class TFGraphTestSubDir {
     private Map<String, INDArray> inputs;
     private Map<String, INDArray> predictions;
     private String modelName;
-    //public static final TFGraphTestAllHelper.ExecuteWith EXECUTE_WITH = TFGraphTestAllHelper.ExecuteWith.SAMEDIFF;
-    public static final TFGraphTestAllHelper.ExecuteWith EXECUTE_WITH = TFGraphTestAllHelper.ExecuteWith.LIBND4J;
+    public static final TFGraphTestAllHelper.ExecuteWith EXECUTE_WITH = TFGraphTestAllHelper.ExecuteWith.SAMEDIFF;
+    //public static final TFGraphTestAllHelper.ExecuteWith EXECUTE_WITH = TFGraphTestAllHelper.ExecuteWith.LIBND4J;
     //public static final TFGraphTestAllHelper.ExecuteWith EXECUTE_WITH = TFGraphTestAllHelper.ExecuteWith.JUST_PRINT;
     private static final String[] SKIP_ARR = new String[] {
-            "norm_11",
+            //"norm_11",
     };
     public static final Set<String> SKIP_SET = new HashSet<>(Arrays.asList(SKIP_ARR));
     public static String modelDir = "tf_graphs/examples/norm_tests";
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() throws IOException {
-        return fetchTestParams(modelDir);
+        return fetchTestParams(modelDir,EXECUTE_WITH);
     }
 
     public TFGraphTestSubDir(Map<String, INDArray> inputs, Map<String, INDArray> predictions, String modelName) throws IOException {
