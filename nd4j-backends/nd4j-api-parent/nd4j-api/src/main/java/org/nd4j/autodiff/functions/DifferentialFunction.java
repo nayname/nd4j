@@ -64,6 +64,10 @@ public abstract class DifferentialFunction {
     @Getter
     private String instanceId;
 
+    @Getter
+    @Setter
+    private String ownName;
+
     public DifferentialFunction() {
         setInstanceId();
     }

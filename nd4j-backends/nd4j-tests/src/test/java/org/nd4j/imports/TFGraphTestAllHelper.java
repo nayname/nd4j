@@ -142,6 +142,10 @@ public class TFGraphTestAllHelper {
             val results = executioner.executeGraph(graph, configuration);
             assertEquals(1, results.length); //FIXME: Later
         } else if (executeWith.equals(ExecuteWith.JUST_PRINT)) {
+            for (String input : inputs.keySet()) {
+                graph.associateArrayWithVariable(inputs.get(input), graph.variableMap().get(input));
+            }
+
             val string = graph.asFlatPrint();
             log.info("Graph structure: \n{}", string);
         }

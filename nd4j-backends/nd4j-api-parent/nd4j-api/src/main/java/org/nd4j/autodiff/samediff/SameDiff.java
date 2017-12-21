@@ -4278,6 +4278,10 @@ public class SameDiff {
             }
         }
 
+        int ownId = reverseMap.size() + 1;
+        reverseMap.put(node.outputVariables()[0].getVarName(), ownId);
+
+        log.info("Own Name: {}", node.getInstanceId());
 
         int nodesIn = FlatNode.createInputVector(bufferBuilder, new int[]{});
         int nodesInPaired = FlatNode.createInputPairedVector(bufferBuilder, Ints.toArray(inPaired));
@@ -4297,8 +4301,7 @@ public class SameDiff {
 
         int flatNode = FlatNode.createFlatNode(
                 bufferBuilder,
-                outputVertexId.length < 1 ||
-                        outputVertexId[0] == null ? -1 : variables.indexOf(outputVertexId[0]),
+                ownId,
                 fname,
                 getFlatOpType(node.opType()),
                 hash,
@@ -4334,13 +4337,16 @@ public class SameDiff {
             if(variable.getArr() == null || variable.getShape() == null)
                 continue;
 
+            val pair = parseVariable(variable.getVarName());
+            reverseMap.put(pair.getFirst(), ++idx);
+            log.info("Adding [{}] as [{}]", pair.getFirst(), idx);
+
             val arr = variable.getArr();
 
             int name = bufferBuilder.createString(variable.getVarName());
             int array = arr.toFlatArray(bufferBuilder);
-            int id = IntPair.createIntPair(bufferBuilder, ++idx, 0);
+            int id = IntPair.createIntPair(bufferBuilder, idx, 0);
 
-            reverseMap.put(variable.getVarName(), idx);
 
             int flatVariable = FlatVariable.createFlatVariable(bufferBuilder, id, name, 0, array, -1);
             flatVariables.add(flatVariable);
@@ -4362,7 +4368,11 @@ public class SameDiff {
                 int name = bufferBuilder.createString(node.getVarName());
                 int array = arr.toFlatArray(bufferBuilder);
                 int id = IntPair.createIntPair(bufferBuilder, ++idx, 0);
-                reverseMap.put(node.getVarName(), idx);
+
+                val pair = parseVariable(node.getVarName());
+                reverseMap.put(pair.getFirst(), idx);
+
+                log.info("Adding [{}] as [{}]", pair.getFirst(), idx);
 
                 int flatVariable = FlatVariable.createFlatVariable(bufferBuilder, id, name, 0, array, -1);
                 flatVariables.add(flatVariable);
