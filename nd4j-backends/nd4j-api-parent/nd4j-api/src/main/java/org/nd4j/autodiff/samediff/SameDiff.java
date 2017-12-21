@@ -4215,7 +4215,29 @@ public class SameDiff {
         return flatNode;
     }
 
-    protected int asFlatNode(@NonNull DifferentialFunction node, @NonNull FlatBufferBuilder bufferBuilder,List<SDVariable> variables) {
+    public static Pair<String, Integer> parseVariable(@NonNull String varName) {
+        if (!varName.contains(":")) {
+            return Pair.pairOf(varName, 0);
+        } else {
+            val split = varName.split(":");
+            val index = Integer.valueOf(split[split.length-1]);
+            if (split.length == 2)
+                return Pair.pairOf(split[0], index);
+            else {
+                val builder = new StringBuilder();
+                for (int e = 0; e < split.length - 1; e++) {
+                    builder.append(split[e]);
+
+                    if (e < split.length - 2)
+                        builder.append(":");
+                }
+
+                return Pair.pairOf(builder.toString(), index);
+            }
+        }
+    }
+
+    protected int asFlatNode(@NonNull DifferentialFunction node, @NonNull FlatBufferBuilder bufferBuilder,List<SDVariable> variables, Map<String, Integer> reverseMap) {
         val hash = getOpNum(node.opName(), node.opType());
         //log.info("Exporting node: [{}:<{}> ; OpType: {}; Hash/opNum: {}]", node.opName(), node.tensorflowName(), node.opType(), hash);
 
@@ -4245,7 +4267,14 @@ public class SameDiff {
         val inputs = node.args();
         for(val input : inputs) {
             for(int i = 0; i < outputVertexId.length; i++) {
-                inPaired.add(IntPair.createIntPair(bufferBuilder,variables.indexOf(input),i));
+                val pair = parseVariable(input.getVarName());
+                if (!reverseMap.containsKey(pair.getFirst()))
+                    throw new ND4JIllegalStateException("Unknown variable used in input: [" +  pair.getFirst() + "]");
+
+                int nodeId = reverseMap.get(pair.getFirst());
+                int outputIndex = pair.getSecond();
+
+                inPaired.add(IntPair.createIntPair(bufferBuilder, nodeId, outputIndex));
             }
         }
 
@@ -4297,6 +4326,7 @@ public class SameDiff {
 
         // first of all we build VariableSpace dump
         List<SDVariable> variableList = new ArrayList<>(variables());
+        val reverseMap = new LinkedHashMap<String, Integer>();
 
         int idx = 0;
         for (val variable: variables()) {
@@ -4308,7 +4338,9 @@ public class SameDiff {
 
             int name = bufferBuilder.createString(variable.getVarName());
             int array = arr.toFlatArray(bufferBuilder);
-            int id = IntPair.createIntPair(bufferBuilder, idx++, 0);
+            int id = IntPair.createIntPair(bufferBuilder, ++idx, 0);
+
+            reverseMap.put(variable.getVarName(), idx);
 
             int flatVariable = FlatVariable.createFlatVariable(bufferBuilder, id, name, 0, array, -1);
             flatVariables.add(flatVariable);
@@ -4316,7 +4348,7 @@ public class SameDiff {
 
         //add functions
         for(val func : functionInstancesById.values()) {
-            flatNodes.add(asFlatNode(func,bufferBuilder,variableList));
+            flatNodes.add(asFlatNode(func,bufferBuilder,variableList, reverseMap));
         }
 
         // we're dumping scopes now
@@ -4329,7 +4361,8 @@ public class SameDiff {
 
                 int name = bufferBuilder.createString(node.getVarName());
                 int array = arr.toFlatArray(bufferBuilder);
-                int id = IntPair.createIntPair(bufferBuilder, idx++, 0);
+                int id = IntPair.createIntPair(bufferBuilder, ++idx, 0);
+                reverseMap.put(node.getVarName(), idx);
 
                 int flatVariable = FlatVariable.createFlatVariable(bufferBuilder, id, name, 0, array, -1);
                 flatVariables.add(flatVariable);
@@ -4337,7 +4370,7 @@ public class SameDiff {
 
             //add functions
             for(val func : scope.getValue().functionInstancesById.values()) {
-                flatNodes.add(asFlatNode(func,bufferBuilder,currVarList));
+                flatNodes.add(asFlatNode(func,bufferBuilder,currVarList, reverseMap));
             }
 
         }
